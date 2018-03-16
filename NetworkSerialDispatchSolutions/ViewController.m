@@ -36,7 +36,22 @@
     self.session = [NSURLSession sessionWithConfiguration:config delegate:self delegateQueue:nil];
 }
 
-- (void)requestUrl:(NSString *)url
+- (void)request:(NSMutableArray<NSString *> *)urls completion:(void (^)(void))completion
+{
+    if (urls.count > 0) {
+        NSString *url = urls.firstObject;
+        [urls removeObjectAtIndex:0];
+        [self requestUrl:url completion:^{
+            [self request:urls completion:completion];
+        }];
+    } else {
+        if (completion) {
+            completion();
+        }
+    }
+}
+
+- (void)requestUrl:(NSString *)url completion:(void (^)(void))completion
 {
     NSLog(@"send request: %@ with thread: %@", url, [NSThread currentThread]);
     
@@ -47,6 +62,10 @@
         } else {
             NSLog(@"response arrived with request URL: %@ with thread: %@", response.URL, [NSThread currentThread]);
         }
+        
+        if (completion) {
+            completion();
+        }
     }];
     [task resume];
 }
@@ -55,11 +74,9 @@
 {
     NSLog(@"begin");
     
-    for (NSString *url in [self urls]) {
-        [self requestUrl:url];
-    }
-    
-    NSLog(@"end");
+    [self request:[NSMutableArray arrayWithArray:[self urls]] completion:^{
+        NSLog(@"end");
+    }];
 }
 
 - (NSArray<NSString *> *)urls
