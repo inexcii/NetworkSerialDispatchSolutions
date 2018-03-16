@@ -11,6 +11,7 @@
 @interface ViewController ()<NSURLSessionDelegate>
 
 @property (nonatomic) NSURLSession *session;
+@property (nonatomic) dispatch_semaphore_t sem;
 
 @end
 
@@ -21,6 +22,8 @@
     [super viewDidLoad];
     
     [self configureNetworkSession];
+    
+    self.sem = dispatch_semaphore_create(0);
 }
 
 - (IBAction)sendRequestButtonTapped:(id)sender
@@ -47,6 +50,8 @@
         } else {
             NSLog(@"response arrived with request URL: %@ with thread: %@", response.URL, [NSThread currentThread]);
         }
+        
+        dispatch_semaphore_signal(self.sem);
     }];
     [task resume];
 }
@@ -57,6 +62,8 @@
     
     for (NSString *url in [self urls]) {
         [self requestUrl:url];
+        
+        dispatch_semaphore_wait(self.sem, DISPATCH_TIME_FOREVER);
     }
     
     NSLog(@"end");
